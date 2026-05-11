@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pin Point</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            justify-content: center;
+            align-items: top;
+            display: flex;
+            height: 100vh;
+            background-color: #ffffff; 
+            background-image: 
+                linear-gradient(to right, #e0e0e0 1px, transparent 1px),
+                linear-gradient(to bottom, #e0e0e0 1px, transparent 1px);
+            background-size: 20px 20px; 
+        }
+
+        .card {
+            padding: 10px;
+            border: 3px solid black;
+            border-radius: 25px;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            background: white;
+            position: relative;
+            z-index: 10;
+        }
+
+        .btn {
+            border: none;
+            padding: 7px;
+            border-radius: 25px;
+            background: white;
+            color: black;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .btn:disabled {
+            color: gray;
+            cursor: not-allowed;
+        }
+
+        .card-pop-create {
+            padding: 10px;
+            border: 4px solid black;
+            border-radius: 15px;
+            width: 250px;
+            display: none;
+            margin-bottom: 5px;
+            flex-direction: column;
+            position: absolute; 
+            background: white;  
+            z-index: 100;
+        }
+
+        .card-pop-distance {
+            padding: 10px;
+            border: 4px solid black;
+            border-radius: 15px;
+            width: 250px;
+            margin-top: 20px;
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            background: white;
+            z-index: 100;
+        }
+
+        .input-field {
+            padding: 5px;
+            border: 2px solid black;
+            border-radius: 10px;
+        }
+
+        .btn-submit {
+            padding: 5px;
+            border: 2px solid black;
+            border-radius: 10px;
+            background: rgb(229, 215, 235);
+            font-size: 14px;
+            color: black;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .btn-submit:disabled {
+            color: gray;
+            cursor: not-allowed;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .card-title {
+            margin: 0;
+            margin-bottom: 5px;
+        }
+
+        .chose {
+            display: none;
+            justify-content: center;
+            margin-top: 35px;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+
+        .frame {
+            width: 1480px;
+            height: 850px;
+        }
+
+        .action {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .test {
+            display: flex;
+            align-items: center;
+        }
+
+        .span-icon {
+            display: block;
+        }
+
+        .btn:disabled .span-icon {
+            opacity: 0.3;
+        }
+
+        .card-submit {
+            display: flex;
+            gap: 5px;
+        }
+
+        .choose-text {
+            margin: 0;
+        }
+
+        #screenshot-canvas {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body id="body">
+    <div class="main" id="main-container">
+        <div class="card" id="toolbar-card">
+            <button class="btn" id="saveImage"><span class="span-icon" ><img class="icon" src="../icons/download.svg" alt=""></span>SaveImage</button>
+            <button class="btn" id="findPath"><span class="span-icon" ><img class="icon" src="../icons/find_path.svg" alt=""></span>FindPath</button>
+            <button class="btn" id="connected" disabled><span class="span-icon"><img class="icon" src="../icons/connect.svg"alt="connected"></span>Connected</button>
+            <button class="btn" id="delete" disabled><span class="span-icon"><img class="icon" src="../icons/delete.svg"alt=""></span>Delete</button>
+            <button class="btn" id="clear"><span class="span-icon" ><img class="icon" src="../icons/empty.svg" alt=""></span>Clear</button>
+        </div>
+
+        <div class="chose" id="choose-title">
+            <h3 class="choose-text" id="choose-text-content">Choose Target node</h3>
+        </div>
+
+        <div class="card-pop-create" id="createPin">
+            <h4 class="card-title">Create node</h4>
+            <div class="card-submit">
+                <input type="text" id="name" class="input-field" placeholder="Enter node name">
+                <button class="btn-submit" id="btnCreate" disabled>Create</button>
+            </div>
+        </div>
+
+        <div class="action">
+            <div class="card-pop-distance" id="createDistance">
+                <h4 class="card-title">Distance</h4>
+                <div class="card-submit">
+                    <input type="text" id="distance" class="input-field" placeholder="Enter distance">
+                    <button class="btn-submit" id="distanceBtn" disabled>Create</button>
+                </div>
+            </div>
+        </div>
+
+        <canvas id="main-board" style="position: fixed; top: 0; left: 0; z-index: 0;"></canvas>
+        <canvas id="screenshot-canvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("main-board");
+        const ctx = canvas.getContext("2d");
+        const screenshotCanvas = document.getElementById("screenshot-canvas");
+        const screenshotCtx = screenshotCanvas.getContext("2d");
+
+        // Elements
+        const cardName = document.getElementById("createPin");
+        const nameInput = document.getElementById("name");
+        const createBtn = document.getElementById("btnCreate");
+        const cardDistance = document.getElementById("createDistance");
+        const distanceInput = document.getElementById("distance");
+        const distanceBtn = document.getElementById("distanceBtn");
+        const chooseTitle = document.getElementById("choose-title");
+        const chooseTextContent = document.getElementById("choose-text-content");
+        const toolbarCard = document.getElementById("toolbar-card");
+
+        const connectedBtn = document.getElementById("connected");
+        const deleteBtn = document.getElementById("delete");
+        const clearBtn = document.getElementById("clear");
+        const saveImageBtn = document.getElementById("saveImage");
+        const findPathBtn = document.getElementById("findPath");
+
+        // --- PAN AND ZOOM STATE ---
+        let panOffset = { x: 0, y: 0 };
+        let zoomLevel = 1;
+        const MIN_ZOOM = 0.1;
+        const MAX_ZOOM = 5;
+        let isPanning = false;
+        let panStart = { x: 0, y: 0 };
+
+        // State
+        const NODE_RADIUS = 35;
+        let nodes = [];
+        let connections = [];
+        let nodeCount = 0;
+        let lastCoord = { x: 0, y: 0 };
+        let selectedNode = null;
+        let isDragging = false;
+        let isConnectingMode = false;
+        let connectionSource = null;
+        let nodeIdCounter = 0;
+        
+        // FindPath state
+        let isFindPathMode = false;
+        let findPathSource = null;
+        let highlightedPath = [];
+        let highlightedNodes = new Set();
+
+        // --- LOCAL STORAGE PERSISTENCE ---
+        function saveToLocalStorage() {
+            const data = {
+                nodes: nodes,
+                connections: connections,
+                nodeCount: nodeCount,
+                nodeIdCounter: nodeIdCounter,
+                panOffset: panOffset,
+                zoomLevel: zoomLevel
+            };
+            localStorage.setItem('pinpoint-graph-data', JSON.stringify(data));
+        }
+
+        function loadFromLocalStorage() {
+            const savedData = localStorage.getItem('pinpoint-graph-data');
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    nodes = data.nodes || [];
+                    connections = data.connections || [];
+                    nodeCount = data.nodeCount || 0;
+                    nodeIdCounter = data.nodeIdCounter || 0;
+                    panOffset = data.panOffset || { x: 0, y: 0 };
+                    zoomLevel = data.zoomLevel || 1;
+                } catch (e) {
+                    console.error('Failed to load data from localStorage:', e);
+                    nodes = [];
+                    connections = [];
+                    nodeCount = 0;
+                    nodeIdCounter = 0;
+                    panOffset = { x: 0, y: 0 };
+                    zoomLevel = 1;
+                }
+            }
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            screenshotCanvas.width = window.innerWidth;
+            screenshotCanvas.height = window.innerHeight;
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Load data dari localStorage
+        loadFromLocalStorage();
+        resizeCanvas();
+
+        // Transform functions for pan and zoom
+        function screenToWorld(screenX, screenY) {
+            return {
+                x: (screenX - panOffset.x) / zoomLevel,
+                y: (screenY - panOffset.y) / zoomLevel
+            };
+        }
+
+        function worldToScreen(worldX, worldY) {
+            return {
+                x: worldX * zoomLevel + panOffset.x,
+                y: worldY * zoomLevel + panOffset.y
+            };
+        }
+
+        // --- DRAWING FUNCTIONS ---
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Save context state
+            ctx.save();
+            
+            // Apply pan and zoom transformations
+            ctx.translate(panOffset.x, panOffset.y);
+            ctx.scale(zoomLevel, zoomLevel);
+
+            // Draw grid
+            drawGrid();
+
+            // Gambar koneksi
+            connections.forEach(conn => {
+                const fromNode = nodes.find(n => n.id === conn.from);
+                const toNode = nodes.find(n => n.id === conn.to);
+                if (!fromNode || !toNode) return;
+
+                const isHighlighted = highlightedPath.some(hc => 
+                    (hc.from === conn.from && hc.to === conn.to) || 
+                    (hc.from === conn.to && hc.to === conn.from)
+                );
+
+                ctx.beginPath();
+                ctx.moveTo(fromNode.x, fromNode.y);
+                ctx.lineTo(toNode.x, toNode.y);
+                ctx.strokeStyle = isHighlighted ? "#0066ff" : "black";
+                ctx.lineWidth = (isHighlighted ? 5 : 2) / zoomLevel;
+                ctx.stroke();
+                ctx.closePath();
+
+                if (conn.distance) {
+                    const midX = (fromNode.x + toNode.x) / 2;
+                    const midY = (fromNode.y + toNode.y) / 2;
+                    
+                    ctx.fillStyle = "white";
+                    ctx.font = `bold ${14 / zoomLevel}px Arial`;
+                    const textWidth = ctx.measureText(conn.distance).width;
+                    ctx.fillRect(midX - textWidth/2 - 4/zoomLevel, midY - 12/zoomLevel, textWidth + 8/zoomLevel, 20/zoomLevel);
+                    
+                    ctx.fillStyle = isHighlighted ? "#0066ff" : "#333";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.fillText(conn.distance, midX, midY - 2/zoomLevel);
+                }
+            });
+
+            // Gambar node
+            nodes.forEach(node => {
+                const isSelected = (selectedNode && selectedNode.id === node.id);
+                const isHighlightedNode = highlightedNodes.has(node.id);
+                
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, NODE_RADIUS, 0, Math.PI * 2);
+                ctx.fillStyle = "white";
+                ctx.fill();
+                
+                if (isHighlightedNode || isSelected) {
+                    ctx.strokeStyle = "#0066ff";
+                    ctx.lineWidth = 5 / zoomLevel;
+                } else {
+                    ctx.strokeStyle = "black";
+                    ctx.lineWidth = 3 / zoomLevel;
+                }
+                ctx.stroke();
+                ctx.closePath();
+
+                ctx.fillStyle = isHighlightedNode ? "#0066ff" : "black";
+                // Adjust font size based on label length
+                const fontSize = Math.min(20, 140 / node.label.length) / zoomLevel;
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(node.label, node.x, node.y);
+            });
+
+            // Restore context state
+            ctx.restore();
+        }
+
+        function drawGrid() {
+            // Calculate visible area in world coordinates
+            const topLeft = screenToWorld(0, 0);
+            const bottomRight = screenToWorld(canvas.width, canvas.height);
+            
+            const startX = Math.floor(topLeft.x / 20) * 20;
+            const startY = Math.floor(topLeft.y / 20) * 20;
+            const endX = bottomRight.x;
+            const endY = bottomRight.y;
+
+            ctx.strokeStyle = "#e0e0e0";
+            ctx.lineWidth = 1 / zoomLevel;
+
+            for (let x = startX; x <= endX; x += 20) {
+                ctx.beginPath();
+                ctx.moveTo(x, startY);
+                ctx.lineTo(x, endY);
+                ctx.stroke();
+            }
+
+            for (let y = startY; y <= endY; y += 20) {
+                ctx.beginPath();
+                ctx.moveTo(startX, y);
+                ctx.lineTo(endX, y);
+                ctx.stroke();
+            }
+        }
+
+        // --- DIJKSTRA ALGORITHM ---
+        function findShortestPath(fromNodeId, toNodeId) {
+            if (fromNodeId === toNodeId) return null;
+            
+            const adjacency = {};
+            nodes.forEach(node => {
+                adjacency[node.id] = [];
+            });
+            
+            connections.forEach(conn => {
+                const distance = parseFloat(conn.distance);
+                if (isNaN(distance) || distance <= 0) return;
+                
+                adjacency[conn.from].push({ 
+                    to: conn.to, 
+                    distance: distance, 
+                    connection: conn 
+                });
+                adjacency[conn.to].push({ 
+                    to: conn.from, 
+                    distance: distance, 
+                    connection: conn 
+                });
+            });
+
+            const distances = {};
+            const previous = {};
+            const unvisited = new Set();
+            
+            nodes.forEach(node => {
+                distances[node.id] = Infinity;
+                previous[node.id] = null;
+                unvisited.add(node.id);
+            });
+            
+            distances[fromNodeId] = 0;
+            
+            while (unvisited.size > 0) {
+                let minNode = null;
+                let minDist = Infinity;
+                
+                unvisited.forEach(nodeId => {
+                    if (distances[nodeId] < minDist) {
+                        minDist = distances[nodeId];
+                        minNode = nodeId;
+                    }
+                });
+                
+                if (minNode === null || distances[minNode] === Infinity) break;
+                if (minNode === toNodeId) break;
+                
+                unvisited.delete(minNode);
+                
+                if (!adjacency[minNode]) continue;
+                
+                adjacency[minNode].forEach(edge => {
+                    if (unvisited.has(edge.to)) {
+                        const newDist = distances[minNode] + edge.distance;
+                        if (newDist < distances[edge.to]) {
+                            distances[edge.to] = newDist;
+                            previous[edge.to] = { 
+                                node: minNode, 
+                                connection: edge.connection 
+                            };
+                        }
+                    }
+                });
+            }
+            
+            if (previous[toNodeId] === null) return null;
+            
+            const pathConnections = [];
+            const pathNodes = new Set();
+            pathNodes.add(fromNodeId);
+            pathNodes.add(toNodeId);
+            
+            let current = toNodeId;
+            while (current !== fromNodeId && previous[current] !== null) {
+                pathConnections.push(previous[current].connection);
+                pathNodes.add(previous[current].node);
+                current = previous[current].node;
+            }
+            
+            const totalDistance = distances[toNodeId];
+            
+            return { 
+                connections: pathConnections, 
+                nodes: pathNodes, 
+                totalDistance: Math.round(totalDistance * 100) / 100 
+            };
+        }
+
+        // --- FUNGSI SCREENSHOT ---
+        function captureFullScreenshot() {
+            return new Promise((resolve) => {
+                const createPinDisplay = cardName.style.display;
+                const distanceDisplay = cardDistance.style.display;
+                const chooseTitleDisplay = chooseTitle.style.display;
+                
+                cardName.style.display = "none";
+                cardDistance.style.display = "none";
+                chooseTitle.style.display = "none";
+
+                screenshotCanvas.width = window.innerWidth;
+                screenshotCanvas.height = window.innerHeight;
+
+                screenshotCtx.fillStyle = "#ffffff";
+                screenshotCtx.fillRect(0, 0, screenshotCanvas.width, screenshotCanvas.height);
+                
+                // Draw grid on screenshot
+                screenshotCtx.strokeStyle = "#e0e0e0";
+                screenshotCtx.lineWidth = 1;
+                for (let x = 0; x < screenshotCanvas.width; x += 20) {
+                    screenshotCtx.beginPath();
+                    screenshotCtx.moveTo(x, 0);
+                    screenshotCtx.lineTo(x, screenshotCanvas.height);
+                    screenshotCtx.stroke();
+                }
+                for (let y = 0; y < screenshotCanvas.height; y += 20) {
+                    screenshotCtx.beginPath();
+                    screenshotCtx.moveTo(0, y);
+                    screenshotCtx.lineTo(screenshotCanvas.width, y);
+                    screenshotCtx.stroke();
+                }
+
+                screenshotCtx.drawImage(canvas, 0, 0);
+
+                cardName.style.display = createPinDisplay;
+                cardDistance.style.display = distanceDisplay;
+                chooseTitle.style.display = chooseTitleDisplay;
+
+                resolve();
+            });
+        }
+
+        async function saveImageAsPNG() {
+            // Save current transform state
+            const currentPan = { ...panOffset };
+            const currentZoom = zoomLevel;
+            
+            // Reset transform for screenshot
+            panOffset = { x: 0, y: 0 };
+            zoomLevel = 1;
+            draw();
+            
+            await new Promise(resolve => setTimeout(resolve, 100)); // Wait for redraw
+            await captureFullScreenshot();
+            
+            // Restore transform
+            panOffset = currentPan;
+            zoomLevel = currentZoom;
+            draw();
+            
+            screenshotCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = 'result.png';
+                link.href = url;
+                link.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+
+        // --- HELPER FUNCTIONS ---
+
+        function getNodeAt(screenX, screenY) {
+            const worldPos = screenToWorld(screenX, screenY);
+            for (let i = nodes.length - 1; i >= 0; i--) {
+                const node = nodes[i];
+                const dist = Math.sqrt((node.x - worldPos.x) ** 2 + (node.y - worldPos.y) ** 2);
+                if (dist < NODE_RADIUS) {
+                    return node;
+                }
+            }
+            return null;
+        }
+
+        function clearSelection() {
+            selectedNode = null;
+            connectedBtn.disabled = true;
+            deleteBtn.disabled = true;
+            if (isConnectingMode) {
+                exitConnectMode();
+            }
+            if (isFindPathMode) {
+                exitFindPathMode();
+            }
+            draw();
+            saveToLocalStorage();
+        }
+
+        function clearHighlight() {
+            highlightedPath = [];
+            highlightedNodes.clear();
+            draw();
+            saveToLocalStorage();
+        }
+
+        function exitConnectMode() {
+            isConnectingMode = false;
+            connectionSource = null;
+            chooseTitle.style.display = "none";
+            cardDistance.style.display = "none";
+            distanceInput.value = "";
+            distanceBtn.disabled = true;
+        }
+
+        function exitFindPathMode() {
+            isFindPathMode = false;
+            findPathSource = null;
+            chooseTitle.style.display = "none";
+        }
+
+        // --- MOUSE EVENTS ---
+
+        canvas.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+
+            // Check if Ctrl key is pressed for panning
+            if (e.ctrlKey) {
+                isPanning = true;
+                panStart = { x: mouseX - panOffset.x, y: mouseY - panOffset.y };
+                return;
+            }
+
+            const hitNode = getNodeAt(mouseX, mouseY);
+
+            if (hitNode) {
+                if (isFindPathMode) {
+                    if (!findPathSource) {
+                        // Pilih source node
+                        findPathSource = hitNode;
+                        selectedNode = hitNode;
+                        connectedBtn.disabled = false;
+                        deleteBtn.disabled = false;
+                        highlightedNodes.clear();
+                        highlightedNodes.add(hitNode.id);
+                        // Update teks choose-title
+                        chooseTextContent.textContent = `Source: ${hitNode.label} - Choose target node`;
+                        draw();
+                        saveToLocalStorage();
+                    } else if (findPathSource.id === hitNode.id) {
+                        // Klik node yang sama - batalkan
+                        exitFindPathMode();
+                        clearHighlight();
+                    } else {
+                        // Pilih target node dan cari path
+                        const result = findShortestPath(findPathSource.id, hitNode.id);
+                        
+                        if (result) {
+                            highlightedPath = result.connections;
+                            highlightedNodes = result.nodes;
+                        } else {
+                            highlightedPath = [];
+                            highlightedNodes.clear();
+                        }
+                        
+                        selectedNode = hitNode;
+                        connectedBtn.disabled = false;
+                        deleteBtn.disabled = false;
+                        // Sembunyikan choose-title setelah path ditemukan
+                        exitFindPathMode();
+                        draw();
+                        saveToLocalStorage();
+                    }
+                } else if (isConnectingMode && connectionSource && connectionSource.id !== hitNode.id) {
+                    completeConnection(hitNode);
+                } else if (isConnectingMode && connectionSource && connectionSource.id === hitNode.id) {
+                    alert("Cannot connect a node to itself.");
+                    exitConnectMode();
+                    draw();
+                } else {
+                    selectedNode = hitNode;
+                    isDragging = true;
+                    connectedBtn.disabled = false;
+                    deleteBtn.disabled = false;
+                    draw();
+                }
+            } else {
+                // Klik area kosong
+                if (isFindPathMode) {
+                    exitFindPathMode();
+                }
+                clearSelection();
+                clearHighlight();
+            }
+        });
+
+        canvas.addEventListener("mousemove", (e) => {
+            if (isPanning) {
+                e.preventDefault();
+                panOffset.x = e.clientX - panStart.x;
+                panOffset.y = e.clientY - panStart.y;
+                draw();
+                return;
+            }
+            
+            if (isDragging && selectedNode) {
+                e.preventDefault();
+                const worldPos = screenToWorld(e.clientX, e.clientY);
+                selectedNode.x = worldPos.x;
+                selectedNode.y = worldPos.y;
+                draw();
+                saveToLocalStorage();
+            }
+        });
+
+        window.addEventListener("mouseup", (e) => {
+            isDragging = false;
+            isPanning = false;
+        });
+
+        // --- ZOOM WITH CTRL + SCROLL ---
+        canvas.addEventListener("wheel", (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const mouseX = e.clientX;
+                const mouseY = e.clientY;
+                
+                const worldPos = screenToWorld(mouseX, mouseY);
+                
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoomLevel * delta));
+                
+                panOffset.x = mouseX - worldPos.x * newZoom;
+                panOffset.y = mouseY - worldPos.y * newZoom;
+                zoomLevel = newZoom;
+                
+                draw();
+                saveToLocalStorage();
+            }
+        }, { passive: false });
+
+        // Prevent browser zoom when Ctrl+scroll
+        document.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        // --- DOUBLE CLICK untuk buat node ---
+        canvas.addEventListener("dblclick", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (isConnectingMode) {
+                exitConnectMode();
+                draw();
+            }
+            if (isFindPathMode) {
+                exitFindPathMode();
+                clearHighlight();
+                draw();
+            }
+
+            const worldPos = screenToWorld(e.clientX, e.clientY);
+            lastCoord = { x: worldPos.x, y: worldPos.y };
+            
+            cardName.style.display = "flex";
+            cardName.style.position = "absolute";
+            cardName.style.left = `${e.clientX}px`;
+            cardName.style.top = `${e.clientY}px`;
+            nameInput.focus();
+            nameInput.value = "";
+            createBtn.disabled = true;
+        });
+
+        nameInput.addEventListener("input", () => {
+            createBtn.disabled = !nameInput.value.trim();
+        });
+
+        function submitNode() {
+            const label = nameInput.value.trim();
+            if (!label) return;
+            
+            const duplicate = nodes.some(n => n.label === label);
+            if (duplicate) {
+                alert(`Node with name "${label}" already exists! Please use a different name.`);
+                return;
+            }
+            
+            nodes.push({
+                id: nodeIdCounter++,
+                x: lastCoord.x,
+                y: lastCoord.y,
+                label: label
+            });
+            
+            nodeCount++;
+            nameInput.value = "";
+            cardName.style.display = "none";
+            draw();
+            saveToLocalStorage();
+        }
+
+        createBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            submitNode();
+        });
+        
+        nameInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                e.stopPropagation();
+                submitNode();
+            }
+        });
+
+        // --- CONNECTING NODES ---
+
+        connectedBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (!selectedNode) return;
+            
+            if (isFindPathMode) {
+                exitFindPathMode();
+                clearHighlight();
+            }
+            
+            if (isConnectingMode) {
+                exitConnectMode();
+                draw();
+            } else {
+                isConnectingMode = true;
+                connectionSource = selectedNode;
+                chooseTextContent.textContent = "Choose Target node";
+                chooseTitle.style.display = "flex";
+            }
+        });
+
+        function completeConnection(targetNode) {
+            const exists = connections.some(conn => 
+                (conn.from === connectionSource.id && conn.to === targetNode.id) ||
+                (conn.from === targetNode.id && conn.to === connectionSource.id)
+            );
+            
+            if (exists) {
+                alert("These nodes are already connected.");
+                exitConnectMode();
+                draw();
+                return;
+            }
+
+            const sourceScreen = worldToScreen(connectionSource.x, connectionSource.y);
+            const targetScreen = worldToScreen(targetNode.x, targetNode.y);
+            const midX = (sourceScreen.x + targetScreen.x) / 2;
+            const midY = (sourceScreen.y + targetScreen.y) / 2;
+            
+            cardDistance.style.display = "flex";
+            cardDistance.style.position = "absolute";
+            cardDistance.style.left = `${midX - 125}px`;
+            cardDistance.style.top = `${midY - 50}px`;
+            
+            cardDistance.dataset.fromId = connectionSource.id;
+            cardDistance.dataset.toId = targetNode.id;
+            
+            distanceInput.focus();
+            distanceInput.value = "";
+            distanceBtn.disabled = true;
+            
+            chooseTitle.style.display = "none";
+            isConnectingMode = false;
+        }
+
+        distanceInput.addEventListener("input", () => {
+            distanceBtn.disabled = !distanceInput.value.trim() || isNaN(parseFloat(distanceInput.value)) || parseFloat(distanceInput.value) <= 0;
+        });
+
+        function submitDistance() {
+            const distance = distanceInput.value.trim();
+            if (!distance || isNaN(parseFloat(distance)) || parseFloat(distance) <= 0) return;
+            
+            const fromId = parseInt(cardDistance.dataset.fromId);
+            const toId = parseInt(cardDistance.dataset.toId);
+            
+            connections.push({
+                from: fromId,
+                to: toId,
+                distance: distance
+            });
+            
+            cardDistance.style.display = "none";
+            distanceInput.value = "";
+            distanceBtn.disabled = true;
+            connectionSource = null;
+            draw();
+            saveToLocalStorage();
+        }
+
+        distanceBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            submitDistance();
+        });
+        
+        distanceInput.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                e.stopPropagation();
+                submitDistance();
+            }
+        });
+
+        // --- FIND PATH ---
+
+        findPathBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            
+            if (!selectedNode) {
+                alert("Please select a source node first.");
+                return;
+            }
+            
+            if (isConnectingMode) {
+                exitConnectMode();
+            }
+            
+            if (isFindPathMode) {
+                exitFindPathMode();
+                clearHighlight();
+                draw();
+                return;
+            }
+            
+            // Masuk mode find path
+            isFindPathMode = true;
+            findPathSource = selectedNode;
+            highlightedPath = [];
+            highlightedNodes.clear();
+            highlightedNodes.add(selectedNode.id);
+            
+            // Tampilkan choose-title dengan teks yang sesuai
+            chooseTextContent.textContent = `Source: ${selectedNode.label} - Choose target node`;
+            chooseTitle.style.display = "flex";
+            
+            draw();
+        });
+
+        // --- DELETE NODE ---
+
+        deleteBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (!selectedNode) return;
+            
+            connections = connections.filter(conn => 
+                conn.from !== selectedNode.id && conn.to !== selectedNode.id
+            );
+            
+            nodes = nodes.filter(n => n.id !== selectedNode.id);
+            
+            selectedNode = null;
+            deleteBtn.disabled = true;
+            connectedBtn.disabled = true;
+            highlightedPath = [];
+            highlightedNodes.clear();
+            if (isFindPathMode) {
+                exitFindPathMode();
+            }
+            draw();
+            saveToLocalStorage();
+        });
+
+        // --- CLEAR ---
+
+        clearBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            nodes = [];
+            connections = [];
+            nodeCount = 0;
+            nodeIdCounter = 0;
+            highlightedPath = [];
+            highlightedNodes.clear();
+            clearSelection();
+            exitConnectMode();
+            exitFindPathMode();
+            cardName.style.display = "none";
+            panOffset = { x: 0, y: 0 };
+            zoomLevel = 1;
+            draw();
+            saveToLocalStorage();
+        });
+
+        // --- SAVE IMAGE ---
+        saveImageBtn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            await saveImageAsPNG();
+        });
+
+        document.addEventListener("mousedown", (e) => {
+            if (cardName.style.display === "flex" && 
+                !cardName.contains(e.target) && 
+                e.target !== nameInput && 
+                e.target !== createBtn) {
+                cardName.style.display = "none";
+            }
+            
+            if (cardDistance.style.display === "flex" && 
+                !cardDistance.contains(e.target) && 
+                e.target !== distanceInput && 
+                e.target !== distanceBtn &&
+                e.target !== canvas) {
+                cardDistance.style.display = "none";
+                exitConnectMode();
+                draw();
+            }
+        });
+    </script>
+</body>
+
+</html>
