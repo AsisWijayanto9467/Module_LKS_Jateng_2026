@@ -13,20 +13,22 @@ Route::post("/login", [AuthController::class, "Login"]);
 Route::middleware("auth:sanctum")->group(function() {
     Route::post("/logout", [AuthController::class,"logout"]);
     Route::prefix("pages")->group(function() {
-        Route::post("/", [PageManagementController::class,"createPage"]);
-        Route::get("/", [PageManagementController::class,"getAllPages"]);
-        Route::get("/{id}", [PageManagementController::class,"getAllByID"]);
-        Route::put("/{id}", [PageManagementController::class,"updatePage"]);
-        Route::delete("/{id}", [PageManagementController::class,"deletePage"]);
+        Route::post('', [PageManagementController::class, 'createPage']);
+        Route::get('', [PageManagementController::class, 'getAllPages']);
+        Route::get('/{id}', [PageManagementController::class, 'getById']);
+        Route::put('/{slug}', [PageManagementController::class, 'updatePage']);
+        Route::delete('/{slug}', [PageManagementController::class, 'deletePage']);
 
         // Page Section
         Route::post("/{slug}/sections", [SectionManageController::class,"addSectionPage"]);
         Route::delete("/{slug}/sections/{sectionId}", [SectionManageController::class,"deleteSection"]);
+        Route::put('/{slug}/sections/{sectionId}/fields', [SectionManageController::class, 'updateFields']);
+        Route::put('/{slug}/sections/reorder', [SectionManageController::class, 'reorder']);
     });
 
     Route::prefix("templates")->group(function() {
         Route::get("/", [TemplateController::class,"getAllTemplate"]);
-        Route::get("/{slug}", [TemplateController::class,"getTemplateByID"]);
+        Route::get("/{slug}", [TemplateController::class,"getTemplateBySlug"]);
     });
 });
 

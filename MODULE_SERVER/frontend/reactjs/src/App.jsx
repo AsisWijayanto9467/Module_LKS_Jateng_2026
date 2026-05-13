@@ -4,6 +4,8 @@ import Login from './Pages/Auth/Login'
 import ProtectedRoute from './Services/ProtectedRoute'
 import Register from './Pages/Auth/Register'
 import Pages from './Pages/PagesBuilder/Pages'
+import Builder from './Pages/PagesBuilder/Builder'
+import Preview from './Pages/PagesBuilder/Preview'
 
 export default function App() {
   return (
@@ -14,6 +16,8 @@ export default function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/pages" element={<Pages />} />
+          <Route path="/builder" element={<Builder />} />
+          <Route path="/preview" element={<Preview />} />
         </Route>
       </Routes>
     </Router>

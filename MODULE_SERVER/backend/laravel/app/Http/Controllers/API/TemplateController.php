@@ -6,27 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Template;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class TemplateController extends Controller
 {
     public function getAllTemplate(Request $request) {
         try {
-            $user = $request->user();
-
-            if(!$user) {
-                return response()->json([
-                    "status" => "error",
-                    "message" => "Unauthenticated."
-                ], 401);
-            }
-
-            $template = Template::with(["templateFields"])->get();
+            $templates = Template::with(["templateFields"])->get();
 
             return response()->json([
-                "status"=> "success",
+                "status" => "success",
                 "message" => "Get all templates successful",
                 "data" => [
-                    "templates" => $template->map(function($temp) {
+                    "templates" => $templates->map(function($temp) {
                         return [
                             "id" => $temp->id,
                             "name" => $temp->name,
@@ -36,7 +28,7 @@ class TemplateController extends Controller
                                     "id" => $field->id,
                                     "template_id" => $field->template_id,
                                     "name" => $field->name,
-                                    "slug" => $field->template->slug,
+                                    "slug" => Str::slug($field->name), // Slug dari nama field
                                     "type" => $field->type,
                                 ];
                             })
@@ -45,52 +37,50 @@ class TemplateController extends Controller
                 ]
             ], 200);
         } catch (\Throwable $th) {
-            Log::error("failed to get all template" . $th->getMessage());
+            Log::error("Failed to get all templates: " . $th->getMessage());
             return response()->json([
+                "status" => "error",
                 "message" => "Server Error",
                 "errors" => $th->getMessage()
             ], 500);
         }
     }
 
-    public function getTemplateByID($slug, Request $request) {
+    public function getTemplateBySlug(Request $request, $slug) {
         try {
-            $user = $request->user();
+            $template = Template::with(["templateFields"])
+                ->where("slug", $slug)
+                ->first();
 
-            if(!$user) {
+            if(!$template) {
                 return response()->json([
                     "status" => "error",
-                    "message" => "Unauthenticated."
-                ], 401);
+                    "message" => "Not found"
+                ], 404);
             }
 
-            $template = Template::with(["templateFields"])->where("slug", $slug)->get();
-
             return response()->json([
-                "status"=> "success",
-                "message" => "Get all templates successful",
+                "status" => "success",
+                "message" => "Get template successful",
                 "data" => [
-                    "templates" => $template->map(function($temp) {
+                    "id" => $template->id,
+                    "name" => $template->name,
+                    "slug" => $template->slug,
+                    "fields" => $template->templateFields->map(function($field) {
                         return [
-                            "id" => $temp->id,
-                            "name" => $temp->name,
-                            "slug" => $temp->slug,
-                            "fields" => $temp->templateFields->map(function($field) {
-                                return [
-                                    "id" => $field->id,
-                                    "template_id" => $field->template_id,
-                                    "name" => $field->name,
-                                    "slug" => $field->template->slug,
-                                    "type" => $field->type,
-                                ];
-                            })
+                            "id" => $field->id,
+                            "template_id" => $field->template_id,
+                            "name" => $field->name,
+                            "slug" => Str::slug($field->name), // Slug dari nama field
+                            "type" => $field->type,
                         ];
                     })
                 ]
             ], 200);
         } catch (\Throwable $th) {
-            Log::error("failed to get template by id" . $th->getMessage());
+            Log::error("Failed to get template by slug: " . $th->getMessage());
             return response()->json([
+                "status" => "error",
                 "message" => "Server Error",
                 "errors" => $th->getMessage()
             ], 500);

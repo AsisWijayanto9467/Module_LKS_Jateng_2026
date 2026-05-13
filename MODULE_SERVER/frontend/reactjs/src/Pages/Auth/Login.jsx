@@ -51,9 +51,17 @@ export default function Login() {
             setError(false);
         }
     }
+
+
     return (
         <div className="auth-panel">
             <div className="auth-card">
+
+                {error && (
+                    <div>
+                        {error}
+                    </div>
+                )}
 
             <div className="auth-card__header">
                 <h1 className="auth-card__title">Sign In</h1>

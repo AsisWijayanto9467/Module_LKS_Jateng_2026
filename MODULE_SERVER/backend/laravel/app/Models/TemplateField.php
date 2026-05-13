@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class TemplateField extends Model
 {
@@ -18,4 +19,7 @@ class TemplateField extends Model
         return $this->belongsTo(Template::class);
     }
 
+    public function getSlugAttribute() {
+        return Str::slug($this->name);
+    }
 }
